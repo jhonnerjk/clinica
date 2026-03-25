@@ -8,8 +8,3 @@ export interface User {
   email: string;
   company: Company;
 }
-
-export interface ClinicalNote {
-  patientId: number;
-  text: string;
-}
