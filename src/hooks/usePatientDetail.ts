@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
 
 import { User } from "../models/User";
-import { getPatients } from "../services/patientService";
+import { getPatientById } from "../services/patientService";
 import { getNote, saveNote } from "../storage/noteStorage";
 
 interface UsePatientDetailResult {
@@ -27,11 +27,15 @@ export const usePatientDetail = (patientId: number): UsePatientDetailResult => {
     setError(null);
 
     try {
-      const [patients, storedNote] = await Promise.all([getPatients(), getNote(patientId)]);
-      const selectedPatient = patients.find((item) => item.id === patientId) ?? null;
+      const [selectedPatient, storedNote] = await Promise.all([
+        getPatientById(patientId),
+        getNote(patientId),
+      ]);
 
       if (!selectedPatient) {
         setError("Patient not found.");
+        setLoading(false);
+        return;
       }
 
       setPatient(selectedPatient);
