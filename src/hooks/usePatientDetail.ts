@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
 
 import { User } from "../models/User";
-import { getPatients } from "../services/patientService";
+import { getPatientById } from "../services/patientService";
 import { getNote, saveNote } from "../storage/noteStorage";
 
 interface UsePatientDetailResult {
@@ -11,11 +11,11 @@ interface UsePatientDetailResult {
   loading: boolean;
   saving: boolean;
   error: string | null;
-  savePatientNote: () => Promise<void>;
+  savePatientNote: () => Promise<boolean>;
   reload: () => Promise<void>;
 }
 
-export const usePatientDetail = (patientId: number): UsePatientDetailResult => {
+export const usePatientDetail = (patientId: number | null): UsePatientDetailResult => {
   const [patient, setPatient] = useState<User | null>(null);
   const [note, setNote] = useState<string>("");
   const [loading, setLoading] = useState<boolean>(true);
@@ -23,34 +23,48 @@ export const usePatientDetail = (patientId: number): UsePatientDetailResult => {
   const [error, setError] = useState<string | null>(null);
 
   const loadPatientData = useCallback(async () => {
+    if (!patientId || Number.isNaN(patientId)) {
+      setPatient(null);
+      setNote("");
+      setError("ID de paciente invalido.");
+      setLoading(false);
+      return;
+    }
+
     setLoading(true);
     setError(null);
 
     try {
-      const [patients, storedNote] = await Promise.all([getPatients(), getNote(patientId)]);
-      const selectedPatient = patients.find((item) => item.id === patientId) ?? null;
-
-      if (!selectedPatient) {
-        setError("Patient not found.");
-      }
+      const [selectedPatient, storedNote] = await Promise.all([
+        getPatientById(patientId),
+        getNote(patientId),
+      ]);
 
       setPatient(selectedPatient);
       setNote(storedNote);
     } catch {
-      setError("Could not load patient detail.");
+      setError("No pudimos cargar el detalle del paciente.");
+      setPatient(null);
     } finally {
       setLoading(false);
     }
   }, [patientId]);
 
   const savePatientNote = useCallback(async () => {
+    if (!patientId || Number.isNaN(patientId)) {
+      setError("ID de paciente invalido.");
+      return false;
+    }
+
     setSaving(true);
     setError(null);
 
     try {
       await saveNote(patientId, note.trim());
+      return true;
     } catch {
-      setError("Could not save clinical note.");
+      setError("No pudimos guardar la nota clinica.");
+      return false;
     } finally {
       setSaving(false);
     }

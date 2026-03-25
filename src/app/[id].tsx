@@ -1,4 +1,5 @@
-import { useLocalSearchParams } from "expo-router";
+import { useLocalSearchParams, useRouter } from "expo-router";
+import { useState } from "react";
 import {
   ActivityIndicator,
   Pressable,
@@ -12,16 +13,40 @@ import {
 import { usePatientDetail } from "../hooks/usePatientDetail";
 
 const PatientDetailScreen = () => {
+  const router = useRouter();
   const params = useLocalSearchParams<{ id?: string }>();
-  const patientId = Number(params.id ?? "0");
+  const parsedId = Number(params.id ?? "");
+  const hasValidId = Number.isInteger(parsedId) && parsedId > 0;
+  const patientId = hasValidId ? parsedId : null;
+  const [saveFeedback, setSaveFeedback] = useState<string>("");
 
   const { patient, note, setNote, loading, saving, error, savePatientNote, reload } =
     usePatientDetail(patientId);
 
-  if (!patientId || Number.isNaN(patientId)) {
+  const handleNoteChange = (value: string) => {
+    setSaveFeedback("");
+    setNote(value);
+  };
+
+  const handleSaveNote = async () => {
+    const saved = await savePatientNote();
+
+    if (saved) {
+      setSaveFeedback("Nota guardada correctamente.");
+    }
+  };
+
+  const goBackToList = () => {
+    router.replace("/");
+  };
+
+  if (!hasValidId) {
     return (
       <View style={styles.centered}>
-        <Text style={styles.errorText}>Invalid patient ID.</Text>
+        <Text style={styles.errorText}>ID de paciente invalido.</Text>
+        <Pressable style={styles.primaryButton} onPress={goBackToList}>
+          <Text style={styles.primaryButtonText}>Volver a pacientes</Text>
+        </Pressable>
       </View>
     );
   }
@@ -30,7 +55,7 @@ const PatientDetailScreen = () => {
     return (
       <View style={styles.centered}>
         <ActivityIndicator size="large" />
-        <Text style={styles.infoText}>Loading patient detail...</Text>
+        <Text style={styles.infoText}>Cargando detalle del paciente...</Text>
       </View>
     );
   }
@@ -40,7 +65,10 @@ const PatientDetailScreen = () => {
       <View style={styles.centered}>
         <Text style={styles.errorText}>{error}</Text>
         <Pressable style={styles.primaryButton} onPress={reload}>
-          <Text style={styles.primaryButtonText}>Try again</Text>
+          <Text style={styles.primaryButtonText}>Reintentar</Text>
+        </Pressable>
+        <Pressable style={styles.secondaryButton} onPress={goBackToList}>
+          <Text style={styles.secondaryButtonText}>Volver a pacientes</Text>
         </Pressable>
       </View>
     );
@@ -50,17 +78,17 @@ const PatientDetailScreen = () => {
     <ScrollView contentContainerStyle={styles.container}>
       <View style={styles.card}>
         <Text style={styles.title}>{patient?.name}</Text>
-        <Text style={styles.meta}>Email: {patient?.email}</Text>
-        <Text style={styles.meta}>Company: {patient?.company?.name ?? "No company"}</Text>
+        <Text style={styles.meta}>Correo: {patient?.email}</Text>
+        <Text style={styles.meta}>Empresa: {patient?.company?.name ?? "Sin empresa"}</Text>
         <Text style={styles.meta}>ID: {patient?.id}</Text>
       </View>
 
       <View style={styles.card}>
-        <Text style={styles.sectionTitle}>Clinical Note</Text>
+        <Text style={styles.sectionTitle}>Nota clinica</Text>
         <TextInput
           value={note}
-          onChangeText={setNote}
-          placeholder="Write patient note..."
+          onChangeText={handleNoteChange}
+          placeholder="Escribe la nota del paciente..."
           multiline
           style={styles.input}
           textAlignVertical="top"
@@ -68,12 +96,13 @@ const PatientDetailScreen = () => {
 
         <Pressable
           style={[styles.primaryButton, saving && styles.primaryButtonDisabled]}
-          onPress={savePatientNote}
+          onPress={handleSaveNote}
           disabled={saving}
         >
-          <Text style={styles.primaryButtonText}>{saving ? "Saving..." : "Save Note"}</Text>
+          <Text style={styles.primaryButtonText}>{saving ? "Guardando..." : "Guardar nota"}</Text>
         </Pressable>
 
+        {saveFeedback ? <Text style={styles.successText}>{saveFeedback}</Text> : null}
         {error ? <Text style={styles.errorText}>{error}</Text> : null}
       </View>
     </ScrollView>
@@ -131,6 +160,17 @@ const styles = StyleSheet.create({
     color: "#ffffff",
     fontWeight: "600",
   },
+  secondaryButton: {
+    borderWidth: 1,
+    borderColor: "#1d3557",
+    paddingVertical: 10,
+    paddingHorizontal: 16,
+    borderRadius: 8,
+  },
+  secondaryButtonText: {
+    color: "#1d3557",
+    fontWeight: "600",
+  },
   centered: {
     flex: 1,
     alignItems: "center",
@@ -148,6 +188,11 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: "#c1121f",
     textAlign: "center",
+  },
+  successText: {
+    fontSize: 14,
+    color: "#2a9d8f",
+    fontWeight: "600",
   },
 });
 

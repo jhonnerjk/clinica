@@ -7,8 +7,8 @@ const RootLayout = () => {
         headerTitleAlign: "center",
       }}
     >
-      <Stack.Screen name="index" options={{ title: "Patients" }} />
-      <Stack.Screen name="[id]" options={{ title: "Patient Detail" }} />
+      <Stack.Screen name="index" options={{ title: "Pacientes" }} />
+      <Stack.Screen name="[id]" options={{ title: "Detalle del paciente" }} />
     </Stack>
   );
 };
